@@ -3,10 +3,15 @@
 set -eu
 
 RAW_BASE_URL="${RAW_BASE_URL:-https://raw.githubusercontent.com/merzzzl/wg-easy-app/main}"
-TARGET_DIR="${1:-$(pwd)/wg-easy-app-deploy}"
+TARGET_DIR="$(pwd)"
 ENV_FILE="${TARGET_DIR}/.env"
 EXAMPLE_FILE="${TARGET_DIR}/.env.example"
 TTY_AVAILABLE=0
+
+if [ "$#" -ne 0 ]; then
+  printf 'This script does not accept arguments. Run it from the target directory.\n' >&2
+  exit 1
+fi
 
 if [ -c /dev/tty ] && [ -r /dev/tty ] && [ -w /dev/tty ] && { : >/dev/tty; } 2>/dev/null; then
   TTY_AVAILABLE=1
