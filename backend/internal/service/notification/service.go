@@ -50,15 +50,15 @@ func (s *Service) SendAdminText(ctx context.Context, chatID int64, text string) 
 
 func (s *Service) SendAdminList(ctx context.Context, chatID int64, title string, users []model.User) error {
 	if len(users) == 0 {
-		return s.tg.SendMarkdownMessage(ctx, chatID, markdownTitle(title)+"\n\n_No users found._")
+		return s.tg.SendMarkdownMessage(ctx, chatID, markdownTitle(title)+"\n\n_no users found_")
 	}
 
 	var builder strings.Builder
 
-	_, _ = builder.WriteString(markdownTitle(title))
+	_, _ = builder.WriteString(markdownTitle(title+"\n"))
 
 	for _, user := range users {
-		_, _ = fmt.Fprintf(&builder, "\n\n• @%s\nStatus: `%s`", escapeMarkdown(user.Username), escapeMarkdown(string(user.Status)))
+		_, _ = fmt.Fprintf(&builder, "\n@%s", escapeMarkdown(user.Username))
 	}
 
 	return s.tg.SendMarkdownMessage(ctx, chatID, builder.String())
