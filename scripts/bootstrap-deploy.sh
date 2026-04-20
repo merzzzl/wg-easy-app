@@ -1,41 +1,86 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
-SOURCE_DIR="${ROOT_DIR}/compose"
-TARGET_DIR="${1:-${ROOT_DIR}/deploy}"
-
-mkdir -p "${TARGET_DIR}"
-
-cp "${SOURCE_DIR}/compose.yaml" "${TARGET_DIR}/compose.yaml"
-cp "${SOURCE_DIR}/Caddyfile" "${TARGET_DIR}/Caddyfile"
-cp "${SOURCE_DIR}/.env.example" "${TARGET_DIR}/.env.example"
-
+RAW_BASE_URL="${RAW_BASE_URL:-https://raw.githubusercontent.com/merzzzl/wg-easy-app/main}"
+TARGET_DIR="${1:-$(pwd)/wg-easy-app-deploy}"
 ENV_FILE="${TARGET_DIR}/.env"
-EXAMPLE_FILE="${SOURCE_DIR}/.env.example"
+EXAMPLE_FILE="${TARGET_DIR}/.env.example"
+TTY_AVAILABLE=0
 
-printf 'Deploy files copied to: %s\n' "${TARGET_DIR}"
-printf 'Fill the variables below. Press Enter to keep the default from .env.example.\n\n'
+if [ -c /dev/tty ] && [ -r /dev/tty ] && [ -w /dev/tty ] && { : >/dev/tty; } 2>/dev/null; then
+  TTY_AVAILABLE=1
+fi
 
-: > "${ENV_FILE}"
+download_file() {
+  source_path="$1"
+  target_path="$2"
+  source_url="${RAW_BASE_URL}/${source_path}"
 
-while IFS= read -r line || [ -n "${line}" ]; do
-  if [[ -z "${line}" || "${line}" =~ ^[[:space:]]*# ]]; then
-    printf '%s\n' "${line}" >> "${ENV_FILE}"
-    continue
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$source_url" -o "$target_path"
+    return
   fi
 
-  key="${line%%=*}"
-  default_value="${line#*=}"
+  if command -v wget >/dev/null 2>&1; then
+    wget -qO "$target_path" "$source_url"
+    return
+  fi
 
-  read -r -p "${key} [${default_value}]: " user_value
-  value="${user_value:-${default_value}}"
+  printf 'curl or wget is required to download deploy files\n' >&2
+  exit 1
+}
 
-  printf '%s=%s\n' "${key}" "${value}" >> "${ENV_FILE}"
-done < "${EXAMPLE_FILE}"
+prompt_value() {
+  key="$1"
+  default_value="$2"
 
-printf '\nGenerated %s\n' "${ENV_FILE}"
+  if [ "$TTY_AVAILABLE" -eq 1 ]; then
+    printf '%s [%s]: ' "$key" "$default_value" > /dev/tty
+    IFS= read -r user_value < /dev/tty || user_value=""
+  else
+    user_value=""
+  fi
+
+  if [ -n "$user_value" ]; then
+    printf '%s' "$user_value"
+    return
+  fi
+
+  printf '%s' "$default_value"
+}
+
+mkdir -p "$TARGET_DIR"
+
+download_file "compose/compose.yaml" "$TARGET_DIR/compose.yaml"
+download_file "compose/Caddyfile" "$TARGET_DIR/Caddyfile"
+download_file "compose/.env.example" "$EXAMPLE_FILE"
+
+printf 'Deploy files copied to: %s\n' "$TARGET_DIR"
+
+if [ "$TTY_AVAILABLE" -eq 1 ]; then
+  printf 'Fill the variables below. Press Enter to keep the default from .env.example.\n\n' > /dev/tty
+else
+  printf 'No interactive terminal detected. Using defaults from .env.example.\n\n'
+fi
+
+: > "$ENV_FILE"
+
+while IFS= read -r line || [ -n "$line" ]; do
+  case "$line" in
+    ''|'#'*)
+      printf '%s\n' "$line" >> "$ENV_FILE"
+      continue
+      ;;
+  esac
+
+  key=${line%%=*}
+  default_value=${line#*=}
+  value=$(prompt_value "$key" "$default_value")
+
+  printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+done < "$EXAMPLE_FILE"
+
+printf '\nGenerated %s\n' "$ENV_FILE"
 printf 'Next step:\n'
-printf '  cd %s && docker compose up -d\n' "${TARGET_DIR}"
+printf '  cd %s && docker compose up -d\n' "$TARGET_DIR"
