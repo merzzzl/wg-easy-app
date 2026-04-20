@@ -10,7 +10,6 @@ import {
   Flex,
   Heading,
   HStack,
-  Separator,
   Skeleton,
   Stack,
   Text,
@@ -68,9 +67,9 @@ export function TunnelList({
       ) : null}
 
       {!loading && tunnels.length > 0 ? (
-        <Stack w="full" gap="0">
+        <Stack w="full" gap="3">
           {tunnels.map((tunnel) => (
-            <Box key={tunnel.id} py="4">
+            <Box key={tunnel.id} p="4" rounded="2xl" bg="bg.panel" borderWidth="1px" w="full">
               <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} gap="3">
                 <VStack align="start" gap="1">
                   <HStack gap="2" wrap="wrap">
@@ -98,7 +97,6 @@ export function TunnelList({
                   </Button>
                 </HStack>
               </Flex>
-              <Separator mt="4" />
             </Box>
           ))}
         </Stack>
