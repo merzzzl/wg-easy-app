@@ -72,6 +72,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if webhookURL := cfg.TelegramWebhookURL(); webhookURL != "" {
+		ok, err := botClient.SetWebhook(ctx, &bot.SetWebhookParams{
+			URL:            webhookURL,
+			AllowedUpdates: []string{"message"},
+		})
+		if err != nil {
+			log.Fatalf("set telegram webhook: %v", err)
+		}
+
+		log.Printf("telegram webhook configured: ok=%t url=%s", ok, webhookURL)
+	} else {
+		log.Print("telegram webhook skipped: APP_MINI_APP_URL is empty")
+	}
+
 	wgRepo, err := wgeasyrepo.New(cfg.WGEasyBaseURL, cfg.WGEasyUsername, cfg.WGEasyPassword, cfg.WGEasyInsecureTLS)
 	if err != nil {
 		log.Fatal(err)
