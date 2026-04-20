@@ -1,9 +1,30 @@
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Container,
+  Dialog,
+  EmptyStateContent,
+  EmptyStateDescription,
+  EmptyStateIndicator,
+  EmptyStateRoot,
+  EmptyStateTitle,
+  Flex,
+  Heading,
+  HStack,
+  Portal,
+  SimpleGrid,
+  Skeleton,
+  Spinner,
+  Stack,
+  Text,
+  VStack,
+} from '@chakra-ui/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 
 import { type Tunnel, useApi } from '../lib/api'
-import { QRModal } from './QRModal'
-import { TunnelCard } from './TunnelCard'
 
 export function MainScreen() {
   const api = useApi()
@@ -117,118 +138,204 @@ export function MainScreen() {
   }
 
   return (
-    <main className="shell">
-      <section className="hero-card">
-        <div>
-          <p className="eyebrow">WireGuard Mini App</p>
-          <h1>Ваши туннели</h1>
-          <p className="hero-copy">
-            Управляйте конфигами в одном окне: создавайте новые туннели, открывайте QR и отправляйте `.conf` прямо в чат.
-          </p>
-        </div>
-        <div className="hero-metrics">
-          <div className="metric-pill">
-            <span>Лимит</span>
-            <strong>{meQuery.data?.used_tunnels ?? 0}/{meQuery.data?.max_tunnels ?? 0}</strong>
-          </div>
-          <button
-            className="primary-button"
-            disabled={createTunnel.isPending || loading || remaining <= 0}
-            onClick={handleCreateTunnel}
+    <Box minH="100vh" py="6">
+      <Container maxW="5xl">
+        <Stack gap="6">
+          <Flex
+            direction={{ base: 'column', md: 'row' }}
+            justify="space-between"
+            align={{ base: 'stretch', md: 'center' }}
+            gap="4"
+            p="6"
+            rounded="3xl"
+            bg="bg.panel"
+            borderWidth="1px"
+            boxShadow="lg"
           >
-            {createTunnel.isPending ? 'Создаем...' : 'Добавить туннель'}
-          </button>
-        </div>
-      </section>
+            <VStack align="start" gap="2">
+              <Text fontSize="xs" textTransform="uppercase" color="blue.400" letterSpacing="widest">
+                WireGuard Mini App
+              </Text>
+              <Heading size="2xl">Ваши туннели</Heading>
+              <Text color="fg.muted" maxW="2xl">
+                Управляйте конфигами в одном окне: создавайте новые туннели, открывайте QR и отправляйте `.conf` прямо в чат.
+              </Text>
+            </VStack>
 
-      {feedback ? <div className="feedback-banner">{feedback}</div> : null}
+            <VStack align={{ base: 'stretch', md: 'end' }} gap="3">
+              <Badge colorPalette="blue" px="3" py="2" rounded="full" fontSize="sm">
+                Лимит {meQuery.data?.used_tunnels ?? 0}/{meQuery.data?.max_tunnels ?? 0}
+              </Badge>
+              <Button colorPalette="blue" onClick={handleCreateTunnel} disabled={createTunnel.isPending || loading || remaining <= 0}>
+                {createTunnel.isPending ? 'Создаем...' : 'Добавить туннель'}
+              </Button>
+            </VStack>
+          </Flex>
 
-      {bootError ? (
-        <section className="panel error-panel">
-          <h2>Не удалось загрузить данные</h2>
-          <p>{bootError instanceof Error ? bootError.message : 'Unknown error'}</p>
-        </section>
-      ) : null}
+          {feedback ? (
+            <Alert.Root status="info" rounded="2xl">
+              <Alert.Indicator />
+              <Alert.Content>{feedback}</Alert.Content>
+            </Alert.Root>
+          ) : null}
 
-      <section className="panel profile-panel">
-        <div>
-          <p className="eyebrow">Профиль</p>
-          <h2>{meQuery.data ? `@${meQuery.data.user.username}` : 'Загрузка...'}</h2>
-        </div>
-        <div className="profile-meta">
-          <span className={`status-chip status-chip--${meQuery.data?.user.status ?? 'pending'}`}>
-            {meQuery.data?.user.status ?? 'pending'}
-          </span>
-          <span className="meta-chip">Осталось слотов: {remaining}</span>
-        </div>
-      </section>
+          {bootError ? (
+            <Alert.Root status="error" rounded="2xl">
+              <Alert.Indicator />
+              <Alert.Content>
+                {bootError instanceof Error ? bootError.message : 'Unknown error'}
+              </Alert.Content>
+            </Alert.Root>
+          ) : null}
 
-      <section className="panel list-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Список</p>
-            <h2>Туннели пользователя</h2>
-          </div>
-        </div>
+          <Flex
+            justify="space-between"
+            align={{ base: 'start', md: 'center' }}
+            direction={{ base: 'column', md: 'row' }}
+            gap="4"
+            p="5"
+            rounded="3xl"
+            bg="bg.panel"
+            borderWidth="1px"
+          >
+            <VStack align="start" gap="1">
+              <Text fontSize="xs" textTransform="uppercase" color="blue.400" letterSpacing="widest">
+                Профиль
+              </Text>
+              <Heading size="lg">{meQuery.data ? `@${meQuery.data.user.username}` : 'Загрузка...'}</Heading>
+            </VStack>
+            <HStack gap="3" wrap="wrap">
+              <Badge colorPalette={meQuery.data?.user.status === 'pending' ? 'orange' : 'green'} px="3" py="2" rounded="full">
+                {meQuery.data?.user.status ?? 'pending'}
+              </Badge>
+              <Badge px="3" py="2" rounded="full" variant="subtle">
+                Осталось слотов: {remaining}
+              </Badge>
+            </HStack>
+          </Flex>
 
-        {loading ? <div className="skeleton-grid"><div className="skeleton-card" /><div className="skeleton-card" /></div> : null}
+          <Box p="5" rounded="3xl" bg="bg.panel" borderWidth="1px">
+            <VStack align="start" gap="4">
+              <VStack align="start" gap="1">
+                <Text fontSize="xs" textTransform="uppercase" color="blue.400" letterSpacing="widest">
+                  Список
+                </Text>
+                <Heading size="lg">Туннели пользователя</Heading>
+              </VStack>
 
-        {!loading && tunnelsQuery.data?.length === 0 ? (
-          <div className="empty-state empty-state--compact">
-            <div className="empty-state__icon">WG</div>
-            <h3>Пока нет ни одного туннеля</h3>
-            <p>Создайте первый конфиг, и он появится здесь с QR и отправкой в чат.</p>
-          </div>
-        ) : null}
+              {loading ? (
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap="4" w="full">
+                  <Skeleton height="160px" rounded="2xl" />
+                  <Skeleton height="160px" rounded="2xl" />
+                </SimpleGrid>
+              ) : null}
 
-        {!loading && tunnelsQuery.data?.length ? (
-          <div className="tunnel-grid">
-            {tunnelsQuery.data.map((tunnel) => (
-              <TunnelCard
-                key={tunnel.id}
-                tunnel={tunnel}
-                deleting={deleteTunnel.isPending && deletingTunnelId === tunnel.id}
-                sending={sendConfig.isPending}
-                onShowQR={() => handleShowQR(tunnel)}
-                onSendConfig={() => sendConfig.mutate(tunnel.id)}
-                onDelete={() => handleDeleteTunnel(tunnel)}
-              />
-            ))}
-          </div>
-        ) : null}
-      </section>
+              {!loading && tunnelsQuery.data?.length === 0 ? (
+                <EmptyStateRoot w="full">
+                  <EmptyStateContent>
+                    <EmptyStateIndicator>WG</EmptyStateIndicator>
+                    <VStack textAlign="center">
+                      <EmptyStateTitle>Пока нет ни одного туннеля</EmptyStateTitle>
+                      <EmptyStateDescription>
+                        Создайте первый конфиг, и он появится здесь с QR и отправкой в чат.
+                      </EmptyStateDescription>
+                    </VStack>
+                  </EmptyStateContent>
+                </EmptyStateRoot>
+              ) : null}
 
-      <QRModal
-        open={selectedTunnel !== null}
-        loading={qrMutation.isPending}
-        tunnelName={selectedTunnel?.wg_client_name ?? ''}
-        svg={qrSvg}
-        onClose={() => {
-          setSelectedTunnel(null)
-          setQrSvg('')
-          qrMutation.reset()
-        }}
-      />
+              {!loading && tunnelsQuery.data?.length ? (
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap="4" w="full">
+                  {tunnelsQuery.data.map((tunnel) => (
+                    <Box key={tunnel.id} p="5" rounded="2xl" borderWidth="1px">
+                      <Flex justify="space-between" align="start" gap="3">
+                        <VStack align="start" gap="1">
+                          <Text fontSize="xs" textTransform="uppercase" color="blue.400" letterSpacing="widest">
+                            Tunnel #{tunnel.id}
+                          </Text>
+                          <Heading size="md">{tunnel.wg_client_name || 'Создается...'}</Heading>
+                        </VStack>
+                        <Badge variant="subtle">ID: {tunnel.wg_client_id || 'pending'}</Badge>
+                      </Flex>
 
-      {deletingTunnelId !== null ? (
-        <div className="modal-backdrop" role="presentation">
-          <div className="modal-card modal-card--compact" role="dialog" aria-modal="true">
-            <div className="modal-card__header">
-              <p className="eyebrow">Удаление</p>
-              <h3>Удалить туннель?</h3>
-            </div>
-            <p className="modal-copy">Конфиг будет удален и из приложения, и из `wg-easy`.</p>
-            <div className="modal-actions">
-              <button className="ghost-button" onClick={() => setDeletingTunnelId(null)}>
-                Отмена
-              </button>
-              <button className="danger-button" disabled={deleteTunnel.isPending} onClick={confirmDeleteTunnel}>
-                {deleteTunnel.isPending ? 'Удаляем...' : 'Удалить'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </main>
+                      <Text mt="4" color="fg.muted">
+                        Создан: {new Date(tunnel.created_at).toLocaleString('ru-RU')}
+                      </Text>
+
+                      <HStack mt="4" gap="3" wrap="wrap">
+                        <Button variant="outline" onClick={() => handleShowQR(tunnel)}>QR</Button>
+                        <Button variant="outline" disabled={sendConfig.isPending} onClick={() => sendConfig.mutate(tunnel.id)}>
+                          {sendConfig.isPending ? 'Отправляем...' : 'В чат'}
+                        </Button>
+                        <Button colorPalette="red" variant="subtle" disabled={deleteTunnel.isPending && deletingTunnelId === tunnel.id} onClick={() => handleDeleteTunnel(tunnel)}>
+                          {deleteTunnel.isPending && deletingTunnelId === tunnel.id ? 'Удаляем...' : 'Удалить'}
+                        </Button>
+                      </HStack>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              ) : null}
+            </VStack>
+          </Box>
+        </Stack>
+      </Container>
+
+      <Dialog.Root open={selectedTunnel !== null} onOpenChange={(details) => !details.open && setSelectedTunnel(null)} placement="center">
+        <Portal>
+          <Dialog.Positioner bg="blackAlpha.600">
+            <Dialog.Content w="90vw" maxW="560px">
+              <Dialog.Header>
+                <Dialog.Title>{selectedTunnel?.wg_client_name ?? 'QR'}</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <VStack gap="4">
+                  <Box w="full" minH="240px" display="grid" placeItems="center" rounded="2xl" bg="white" color="black" p="4">
+                    {qrMutation.isPending ? <Spinner /> : null}
+                    {!qrMutation.isPending && qrSvg ? <Box w="280px" maxW="full" dangerouslySetInnerHTML={{ __html: qrSvg }} /> : null}
+                  </Box>
+                  <Text color="fg.muted" textAlign="center">
+                    Откройте QR в приложении WireGuard или AmneziaVPN для быстрого импорта конфигурации.
+                  </Text>
+                </VStack>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Dialog.ActionTrigger asChild>
+                  <Button variant="outline" onClick={() => {
+                    setSelectedTunnel(null)
+                    setQrSvg('')
+                    qrMutation.reset()
+                  }}>
+                    Закрыть
+                  </Button>
+                </Dialog.ActionTrigger>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={deletingTunnelId !== null} onOpenChange={(details) => !details.open && setDeletingTunnelId(null)} placement="center">
+        <Portal>
+          <Dialog.Positioner bg="blackAlpha.600">
+            <Dialog.Content w="90vw" maxW="420px">
+              <Dialog.Header>
+                <Dialog.Title>Удалить туннель?</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <Text>Конфиг будет удален и из приложения, и из `wg-easy`.</Text>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Dialog.ActionTrigger asChild>
+                  <Button variant="outline" onClick={() => setDeletingTunnelId(null)}>Отмена</Button>
+                </Dialog.ActionTrigger>
+                <Button colorPalette="red" onClick={confirmDeleteTunnel} disabled={deleteTunnel.isPending}>
+                  {deleteTunnel.isPending ? 'Удаляем...' : 'Удалить'}
+                </Button>
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+    </Box>
   )
 }

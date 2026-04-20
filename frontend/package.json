@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.26.0",
+    "@emotion/react": "^11.14.0",
     "@tanstack/react-query": "^5.87.4",
     "@tma.js/sdk-react": "^3.0.15",
     "react": "^19.1.1",

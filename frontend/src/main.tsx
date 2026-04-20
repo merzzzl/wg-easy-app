@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { init, isTMA, miniApp, themeParams } from '@tma.js/sdk-react'
+import { Provider } from './components/ui/provider'
 
 import App from './App'
 import WebApp from './WebApp'
@@ -27,6 +28,8 @@ if (inTelegram) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {inTelegram ? <App /> : <WebApp />}
+    <Provider>
+      {inTelegram ? <App /> : <WebApp />}
+    </Provider>
   </StrictMode>,
 )
