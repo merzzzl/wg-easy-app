@@ -17,11 +17,14 @@ import (
 	_ "modernc.org/sqlite"
 
 	"wg-easy-app/backend/internal/config"
-	"wg-easy-app/backend/internal/controller"
+	httpcontroller "wg-easy-app/backend/internal/controller/http"
+	webhookcontroller "wg-easy-app/backend/internal/controller/webhook"
+	"wg-easy-app/backend/internal/middleware"
 	"wg-easy-app/backend/internal/migrations"
 	postgresrepo "wg-easy-app/backend/internal/repository/postgres"
 	telegramrepo "wg-easy-app/backend/internal/repository/telegram"
 	wgeasyrepo "wg-easy-app/backend/internal/repository/wgeasy"
+	adminservice "wg-easy-app/backend/internal/service/admin"
 	authservice "wg-easy-app/backend/internal/service/auth"
 	notificationservice "wg-easy-app/backend/internal/service/notification"
 	tunnelservice "wg-easy-app/backend/internal/service/tunnel"
@@ -78,14 +81,21 @@ func main() {
 	tgRepo := telegramrepo.New(botClient)
 
 	authService := authservice.New(cfg, dbRepo, tgRepo)
+	adminService := adminservice.New(dbRepo, wgRepo)
 	tunnelService := tunnelservice.New(cfg, dbRepo, tgRepo, wgRepo)
-	notificationService := notificationservice.New(cfg, tgRepo)
+	notificationService := notificationservice.New(cfg, dbRepo, tgRepo)
 
-	ctrl := controller.New(authService, tunnelService, notificationService)
+	httpController := httpcontroller.New(tunnelService, notificationService)
+	webhookController := webhookcontroller.New(authService, adminService, notificationService)
+
+	mux := http.NewServeMux()
+	mux.Handle("/", httpcontroller.Static("/app/static", httpController.Routes(middleware.Auth(authService, notificationService))))
+	mux.HandleFunc("POST /telegram/webhook", webhookController.TelegramWebhook)
+
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           controller.Static("/app/static", ctrl.Routes()),
+		Handler:           middleware.RequestLogger(mux),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 

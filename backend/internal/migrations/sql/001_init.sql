@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     telegram_id INTEGER NOT NULL UNIQUE,
@@ -17,4 +18,16 @@ CREATE TABLE IF NOT EXISTS tunnels (
     created_at DATETIME NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_tunnels_user_id ON tunnels(user_id);
+
+-- +goose Down
+DROP INDEX IF EXISTS idx_tunnels_user_id;
+DROP TABLE IF EXISTS app_settings;
+DROP TABLE IF EXISTS tunnels;
+DROP TABLE IF EXISTS users;

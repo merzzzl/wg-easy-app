@@ -1,14 +1,16 @@
-package controller
+package http
 
 import (
 	"log/slog"
-	"net/http"
+	nethttp "net/http"
+
+	"wg-easy-app/backend/internal/middleware"
 )
 
-func (c *Controller) CreateTunnel(w http.ResponseWriter, r *http.Request) {
-	user, ok := currentUser(r.Context())
+func (c *Controller) CreateTunnel(w nethttp.ResponseWriter, r *nethttp.Request) {
+	user, ok := middleware.CurrentUser(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, nethttp.StatusUnauthorized, "unauthorized")
 
 		return
 	}
@@ -24,6 +26,5 @@ func (c *Controller) CreateTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = c.notificationService.NotifyTunnelCreated(r.Context(), user, tunnelModel)
-
-	writeJSON(w, http.StatusCreated, tunnelModel)
+	writeJSON(w, nethttp.StatusCreated, tunnelModel)
 }

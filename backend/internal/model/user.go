@@ -5,8 +5,9 @@ import "time"
 type UserStatus string
 
 const (
-	UserStatusPending  UserStatus = "pending"
-	UserStatusApproved UserStatus = "approved"
+	UserStatusPending        UserStatus = "pending"
+	UserStatusWaitingApprove UserStatus = "waiting_approve"
+	UserStatusApproved       UserStatus = "approved"
 )
 
 type User struct {

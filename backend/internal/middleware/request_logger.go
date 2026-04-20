@@ -1,4 +1,4 @@
-package controller
+package middleware
 
 import (
 	"log/slog"
@@ -16,9 +16,7 @@ func (w *statusResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (c *Controller) RequestLogger(next http.Handler) http.Handler {
-	_ = c
-
+func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startedAt := time.Now()
 		writer := &statusResponseWriter{

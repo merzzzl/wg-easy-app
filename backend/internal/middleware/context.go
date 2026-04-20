@@ -1,4 +1,4 @@
-package controller
+package middleware
 
 import (
 	"context"
@@ -10,11 +10,11 @@ type contextKey string
 
 const currentUserKey contextKey = "current-user"
 
-func withCurrentUser(ctx context.Context, user *model.User) context.Context {
+func WithCurrentUser(ctx context.Context, user *model.User) context.Context {
 	return context.WithValue(ctx, currentUserKey, user)
 }
 
-func currentUser(ctx context.Context) (*model.User, bool) {
+func CurrentUser(ctx context.Context) (*model.User, bool) {
 	user, ok := ctx.Value(currentUserKey).(*model.User)
 
 	return user, ok
