@@ -11,6 +11,12 @@ import (
 func (s *Service) SendConfig(ctx context.Context, user *model.User, tunnelID int64) error {
 	slog.Info("tunnel.send_config called", "user_id", user.ID, "tunnel_id", tunnelID, "chat_id", user.ChatID)
 
+	if err := ensureUserApproved(user); err != nil {
+		slog.Warn("tunnel.send_config rejected for unapproved user", "user_id", user.ID, "status", user.Status)
+
+		return err
+	}
+
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
 		return fmt.Errorf("list tunnels: %w", err)

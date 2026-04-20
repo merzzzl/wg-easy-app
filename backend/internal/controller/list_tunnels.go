@@ -10,9 +10,10 @@ func (c *Controller) ListTunnels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tunnels, err := c.tunnelService.ListByUserID(r.Context(), user.ID)
+	tunnels, err := c.tunnelService.ListByUserID(r.Context(), user)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list tunnels")
+		status, message := mapTunnelError(err)
+		writeError(w, status, message)
 
 		return
 	}

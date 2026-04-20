@@ -11,6 +11,12 @@ import (
 func (s *Service) GetQRCodeSVG(ctx context.Context, user *model.User, tunnelID int64) (string, error) {
 	slog.Info("tunnel.get_qrcode_svg called", "user_id", user.ID, "tunnel_id", tunnelID)
 
+	if err := ensureUserApproved(user); err != nil {
+		slog.Warn("tunnel.get_qrcode_svg rejected for unapproved user", "user_id", user.ID, "status", user.Status)
+
+		return "", err
+	}
+
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
 		return "", fmt.Errorf("list tunnels: %w", err)

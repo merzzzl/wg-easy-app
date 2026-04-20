@@ -16,6 +16,7 @@ import (
 var (
 	ErrTunnelLimitExceeded = errors.New("tunnel: tunnel limit exceeded")
 	ErrTunnelNotFound      = errors.New("tunnel: tunnel not found")
+	ErrUserNotApproved     = errors.New("tunnel: user is not approved")
 )
 
 type Service struct {
@@ -51,4 +52,12 @@ func findTunnelByID(tunnels []model.Tunnel, tunnelID int64) (model.Tunnel, error
 	}
 
 	return model.Tunnel{}, ErrTunnelNotFound
+}
+
+func ensureUserApproved(user *model.User) error {
+	if user.IsApproved() {
+		return nil
+	}
+
+	return ErrUserNotApproved
 }

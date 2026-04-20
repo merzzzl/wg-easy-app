@@ -11,6 +11,12 @@ import (
 func (s *Service) Delete(ctx context.Context, user *model.User, tunnelID int64) (model.Tunnel, error) {
 	slog.Info("tunnel.delete called", "user_id", user.ID, "tunnel_id", tunnelID)
 
+	if err := ensureUserApproved(user); err != nil {
+		slog.Warn("tunnel.delete rejected for unapproved user", "user_id", user.ID, "status", user.Status)
+
+		return model.Tunnel{}, err
+	}
+
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
 		return model.Tunnel{}, fmt.Errorf("list tunnels: %w", err)

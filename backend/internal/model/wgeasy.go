@@ -6,7 +6,8 @@ type WGEasyClient struct {
 }
 
 type WGEasyCreateClientParams struct {
-	Name string `json:"name"`
+	Name      string  `json:"name"`
+	ExpiresAt *string `json:"expiresAt"`
 }
 
 type WGEasyCreateClientResponse struct {

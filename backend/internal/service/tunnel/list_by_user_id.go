@@ -7,8 +7,14 @@ import (
 	"wg-easy-app/backend/internal/model"
 )
 
-func (s *Service) ListByUserID(ctx context.Context, userID int64) ([]model.Tunnel, error) {
-	slog.Info("tunnel.list_by_user_id called", "user_id", userID)
+func (s *Service) ListByUserID(ctx context.Context, user *model.User) ([]model.Tunnel, error) {
+	slog.Info("tunnel.list_by_user_id called", "user_id", user.ID)
 
-	return s.db.ListTunnelsByUserID(ctx, userID)
+	if err := ensureUserApproved(user); err != nil {
+		slog.Warn("tunnel.list_by_user_id rejected for unapproved user", "user_id", user.ID, "status", user.Status)
+
+		return nil, err
+	}
+
+	return s.db.ListTunnelsByUserID(ctx, user.ID)
 }

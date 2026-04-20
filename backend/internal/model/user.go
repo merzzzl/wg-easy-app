@@ -5,7 +5,8 @@ import "time"
 type UserStatus string
 
 const (
-	UserStatusPending UserStatus = "pending"
+	UserStatusPending  UserStatus = "pending"
+	UserStatusApproved UserStatus = "approved"
 )
 
 type User struct {
@@ -24,4 +25,8 @@ type UserUpsertParams struct {
 	Username     string
 	LanguageCode string
 	ChatID       int64
+}
+
+func (u *User) IsApproved() bool {
+	return u.Status == UserStatusApproved
 }

@@ -64,6 +64,8 @@ func mapTunnelError(err error) (int, string) {
 		return http.StatusNotFound, "tunnel not found"
 	case errors.Is(err, tunnel.ErrTunnelLimitExceeded):
 		return http.StatusConflict, "tunnel limit exceeded"
+	case errors.Is(err, tunnel.ErrUserNotApproved):
+		return http.StatusForbidden, "user is pending approval"
 	default:
 		return http.StatusInternalServerError, "internal server error"
 	}

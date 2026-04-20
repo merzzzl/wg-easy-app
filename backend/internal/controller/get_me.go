@@ -10,16 +10,22 @@ func (c *Controller) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tunnels, err := c.tunnelService.ListByUserID(r.Context(), user.ID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list tunnels")
+	usedTunnels := 0
 
-		return
+	if user.IsApproved() {
+		tunnels, err := c.tunnelService.ListByUserID(r.Context(), user)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list tunnels")
+
+			return
+		}
+
+		usedTunnels = len(tunnels)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"user":         user,
 		"max_tunnels":  c.tunnelService.MaxTunnels(),
-		"used_tunnels": len(tunnels),
+		"used_tunnels": usedTunnels,
 	})
 }
