@@ -1,6 +1,6 @@
 version: "2"
 run:
-  go: "1.25"
+  go: "1.24"
 linters:
   default: all
   enable:
@@ -108,9 +108,13 @@ formatters:
   enable:
     - gci
     - gofmt
-    - gofumpt
     - goimports
   settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(wg-easy-app/backend)
     gofmt:
       rewrite-rules:
         - pattern: interface{}
@@ -119,5 +123,3 @@ formatters:
           replacement: a[b:]
         - pattern: a[0:b]
           replacement: a[:b]
-    gofumpt:
-      extra-rules: true

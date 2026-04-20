@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-telegram/bot/models"
+
 	"wg-easy-app/backend/internal/service/auth"
 )
 

@@ -75,8 +75,7 @@ export function useApi() {
     createTunnel: () => request<Tunnel>('/api/v1/tunnels', initDataRaw, { method: 'POST' }),
     deleteTunnel: (tunnelId: number) => request<{ ok: boolean }>(`/api/v1/tunnels/${tunnelId}`, initDataRaw, { method: 'DELETE' }),
     getTunnelQR: (tunnelId: number) => request<{ svg: string }>(`/api/v1/tunnels/${tunnelId}/qr`, initDataRaw),
-    sendTunnelConfig: (tunnelId: number) =>
-      request<{ ok: boolean }>(`/api/v1/tunnels/${tunnelId}/send-config`, initDataRaw, { method: 'POST' }),
+    sendTunnelConfig: (tunnelId: number) => request<{ ok: boolean }>(`/api/v1/tunnels/${tunnelId}/config`, initDataRaw),
   }
 }
 

@@ -3,11 +3,14 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) Create(ctx context.Context, user *model.User) (model.Tunnel, error) {
+	log.Printf("info tunnel.create called user_id=%d username=%s", user.ID, user.Username)
+
 	tx, err := s.db.OpenTx(ctx)
 	if err != nil {
 		return model.Tunnel{}, fmt.Errorf("open transaction: %w", err)
@@ -61,6 +64,8 @@ func (s *Service) Create(ctx context.Context, user *model.User) (model.Tunnel, e
 	}
 
 	committed = true
+
+	log.Printf("info tunnel.create succeeded user_id=%d tunnel_id=%d wg_client_name=%s wg_client_id=%s", user.ID, tunnel.ID, tunnel.WGClientName, tunnel.WGClientID)
 
 	return tunnel, nil
 }

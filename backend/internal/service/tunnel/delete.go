@@ -3,11 +3,14 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) Delete(ctx context.Context, user *model.User, tunnelID int64) (model.Tunnel, error) {
+	log.Printf("info tunnel.delete called user_id=%d tunnel_id=%d", user.ID, tunnelID)
+
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
 		return model.Tunnel{}, fmt.Errorf("list tunnels: %w", err)
@@ -44,6 +47,8 @@ func (s *Service) Delete(ctx context.Context, user *model.User, tunnelID int64) 
 	}
 
 	committed = true
+
+	log.Printf("info tunnel.delete succeeded user_id=%d tunnel_id=%d wg_client_name=%s", user.ID, tunnel.ID, tunnel.WGClientName)
 
 	return tunnel, nil
 }

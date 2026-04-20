@@ -25,9 +25,15 @@ func (s *Service) ValidateInitData(initData string) (model.TelegramUser, error) 
 	}
 
 	dataCheckString := makeDataCheckString(values)
-	secret := sha256.Sum256([]byte(s.config.MainBotToken))
 
-	mac := hmac.New(sha256.New, secret[:])
+	secretKeyMac := hmac.New(sha256.New, []byte("WebAppData"))
+	if _, err := secretKeyMac.Write([]byte(s.config.MainBotToken)); err != nil {
+		return model.TelegramUser{}, fmt.Errorf("%w: write bot token: %w", ErrInvalidInitData, err)
+	}
+
+	secret := secretKeyMac.Sum(nil)
+
+	mac := hmac.New(sha256.New, secret)
 	if _, err := mac.Write([]byte(dataCheckString)); err != nil {
 		return model.TelegramUser{}, fmt.Errorf("%w: write signature payload: %w", ErrInvalidInitData, err)
 	}

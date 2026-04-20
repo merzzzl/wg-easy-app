@@ -17,5 +17,5 @@ func (c *Controller) Routes() http.Handler {
 
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", c.AuthMiddleware(api)))
 
-	return mux
+	return c.RequestLogger(mux)
 }

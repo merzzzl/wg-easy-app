@@ -3,11 +3,14 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) GetQRCodeSVG(ctx context.Context, user *model.User, tunnelID int64) (string, error) {
+	log.Printf("info tunnel.get_qrcode_svg called user_id=%d tunnel_id=%d", user.ID, tunnelID)
+
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
 		return "", fmt.Errorf("list tunnels: %w", err)

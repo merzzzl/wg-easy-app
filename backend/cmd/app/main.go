@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-telegram/bot"
 	_ "modernc.org/sqlite"
+
 	"wg-easy-app/backend/internal/config"
 	"wg-easy-app/backend/internal/controller"
 	"wg-easy-app/backend/internal/migrations"
