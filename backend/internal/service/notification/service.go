@@ -45,23 +45,23 @@ func (s *Service) BindAdminChat(ctx context.Context, telegramUser model.Telegram
 }
 
 func (s *Service) SendAdminText(ctx context.Context, chatID int64, text string) error {
-	return s.tg.SendMessage(ctx, chatID, text)
+	return s.tg.SendMarkdownMessage(ctx, chatID, text)
 }
 
 func (s *Service) SendAdminList(ctx context.Context, chatID int64, title string, users []model.User) error {
 	if len(users) == 0 {
-		return s.tg.SendMessage(ctx, chatID, title+"\n- empty")
+		return s.tg.SendMarkdownMessage(ctx, chatID, markdownTitle(title)+"\n\n_No users found._")
 	}
 
 	var builder strings.Builder
 
-	_, _ = builder.WriteString(title)
+	_, _ = builder.WriteString(markdownTitle(title))
 
 	for _, user := range users {
-		_, _ = fmt.Fprintf(&builder, "\n- @%s | tg_id=%d | status=%s", user.Username, user.TelegramID, user.Status)
+		_, _ = fmt.Fprintf(&builder, "\n\n• @%s\nStatus: `%s`", escapeMarkdown(user.Username), escapeMarkdown(string(user.Status)))
 	}
 
-	return s.tg.SendMessage(ctx, chatID, builder.String())
+	return s.tg.SendMarkdownMessage(ctx, chatID, builder.String())
 }
 
 func (s *Service) sendAdminMessage(ctx context.Context, text string) error {
@@ -70,15 +70,7 @@ func (s *Service) sendAdminMessage(ctx context.Context, text string) error {
 		return fmt.Errorf("get admin chat id: %w", err)
 	}
 
-	return s.tg.SendMessage(ctx, chatID, text)
-}
-
-func formatUsername(username string) string {
-	if username == "" {
-		return "-"
-	}
-
-	return "@" + username
+	return s.tg.SendMarkdownMessage(ctx, chatID, text)
 }
 
 func formatTunnelLine(wgClientName string) string {
@@ -89,15 +81,44 @@ func formatTunnelLine(wgClientName string) string {
 	return wgClientName
 }
 
-func actionText(action, username string, telegramID, tunnelID int64, wgClientName string) string {
-	message := fmt.Sprintf("%s\nusername: %s\ntelegram_id: %d", action, formatUsername(username), telegramID)
+func actionText(action, username string, tunnelID int64, wgClientName string) string {
+	message := fmt.Sprintf("%s\n\nUser: %s\nUsername: @%s", markdownTitle(action), escapeMarkdown(username), escapeMarkdown(username))
 	if tunnelID == 0 {
 		return message
 	}
 
-	return fmt.Sprintf("%s\ntunnel_id: %d\nwg_client_name: %s", message, tunnelID, formatTunnelLine(wgClientName))
+	return fmt.Sprintf("%s\nTunnel ID: `%d`\nTunnel name: `%s`", message, tunnelID, escapeMarkdown(formatTunnelLine(wgClientName)))
 }
 
-func registrationText(username string, telegramID int64, status string) string {
-	return fmt.Sprintf("Новая регистрация, требуется подтверждение\nusername: %s\ntelegram_id: %d\nstatus: %s", formatUsername(username), telegramID, status)
+func registrationText(username, status string) string {
+	return fmt.Sprintf("%s\n\nUser: @%s\nStatus: `%s`", markdownTitle("New registration request"), escapeMarkdown(username), escapeMarkdown(status))
+}
+
+func markdownTitle(title string) string {
+	return "*" + escapeMarkdown(title) + "*"
+}
+
+func escapeMarkdown(value string) string {
+	replacer := strings.NewReplacer(
+		"_", "\\_",
+		"*", "\\*",
+		"[", "\\[",
+		"]", "\\]",
+		"(", "\\(",
+		")", "\\)",
+		"~", "\\~",
+		"`", "\\`",
+		">", "\\>",
+		"#", "\\#",
+		"+", "\\+",
+		"-", "\\-",
+		"=", "\\=",
+		"|", "\\|",
+		"{", "\\{",
+		"}", "\\}",
+		".", "\\.",
+		"!", "\\!",
+	)
+
+	return replacer.Replace(value)
 }

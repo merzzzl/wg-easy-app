@@ -19,6 +19,8 @@
   "feedback.deleted": "Tunnel deleted.",
   "feedback.configSent": "Config sent to Telegram chat.",
   "error.load": "Failed to load data",
+  "approval.title": "Access is waiting for approval",
+  "approval.body": "The administrator has received your request. Tunnel management will become available after approval.",
   "qr.title": "QR code",
   "qr.body": "Scan it in WireGuard or AmneziaVPN to import configuration.",
   "dialog.close": "Close",

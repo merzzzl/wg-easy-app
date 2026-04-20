@@ -16,6 +16,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
 
   wg-easy-app:
     image: ghcr.io/merzzzl/wg-easy-app:latest
@@ -37,9 +39,12 @@ services:
       APP_MINI_APP_URL: https://${MINI_APP_DOMAIN}
     volumes:
       - wg-easy-app_data:/data
+    networks:
+      - default
 
   wg-easy:
     image: ghcr.io/wg-easy/wg-easy:15
+    container_name: wg-easy
     restart: unless-stopped
     environment:
       INIT_ENABLED: "true"
@@ -61,9 +66,24 @@ services:
       - net.ipv6.conf.all.disable_ipv6=0
       - net.ipv6.conf.all.forwarding=1
       - net.ipv6.conf.default.forwarding=1
+    networks:
+      default:
+      wg:
+        ipv4_address: 10.42.42.42
+        ipv6_address: fdcc:ad94:bacf:61a3::2a
 
 volumes:
   wg-easy-app_data:
   caddy_data:
   caddy_config:
   wg-easy_etc:
+
+networks:
+  wg:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.42.42.0/24
+        - subnet: fdcc:ad94:bacf:61a3::/64

@@ -10,5 +10,5 @@ import (
 func (s *Service) NotifyRegistration(ctx context.Context, user *model.User) error {
 	slog.Info("notification.notify_registration called", "telegram_id", user.TelegramID, "username", user.Username, "admin_username", s.adminUsername)
 
-	return s.sendAdminMessage(ctx, registrationText(user.Username, user.TelegramID, string(user.Status))+"\napprove: /approve "+formatTelegramID(user.TelegramID)+"\nrevoke: /revoke "+formatTelegramID(user.TelegramID))
+	return s.sendAdminMessage(ctx, registrationText(user.Username, string(user.Status))+"\n\nApprove: `/approve @"+escapeMarkdown(user.Username)+"`\nRevoke: `/revoke @"+escapeMarkdown(user.Username)+"`")
 }

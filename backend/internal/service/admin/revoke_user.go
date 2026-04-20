@@ -8,7 +8,7 @@ import (
 	"wg-easy-app/backend/internal/model"
 )
 
-func (s *Service) RevokeUser(ctx context.Context, telegramID int64) (model.User, int, error) {
+func (s *Service) RevokeUser(ctx context.Context, username string) (model.User, int, error) {
 	tx, err := s.db.OpenTx(ctx)
 	if err != nil {
 		return model.User{}, 0, fmt.Errorf("open transaction: %w", err)
@@ -24,9 +24,9 @@ func (s *Service) RevokeUser(ctx context.Context, telegramID int64) (model.User,
 		}
 	}()
 
-	user, err := tx.GetUserByTelegramID(ctx, telegramID)
+	user, err := tx.GetUserByUsername(ctx, username)
 	if err != nil {
-		return model.User{}, 0, fmt.Errorf("get user by telegram id: %w", err)
+		return model.User{}, 0, fmt.Errorf("get user by username: %w", err)
 	}
 
 	tunnels, err := tx.ListTunnelsByUserID(ctx, user.ID)
@@ -37,7 +37,7 @@ func (s *Service) RevokeUser(ctx context.Context, telegramID int64) (model.User,
 	for _, tunnel := range tunnels {
 		if tunnel.WGClientID != "" {
 			if err := s.wg.DeleteClient(ctx, tunnel.WGClientID); err != nil {
-				slog.Error("admin.revoke_user wg delete failed", "telegram_id", telegramID, "tunnel_id", tunnel.ID, "error", err)
+				slog.Error("admin.revoke_user wg delete failed", "username", username, "tunnel_id", tunnel.ID, "error", err)
 
 				return model.User{}, 0, fmt.Errorf("delete wg client: %w", err)
 			}
@@ -48,7 +48,7 @@ func (s *Service) RevokeUser(ctx context.Context, telegramID int64) (model.User,
 		}
 	}
 
-	user, err = tx.SetUserStatusByTelegramID(ctx, telegramID, model.UserStatusWaitingApprove)
+	user, err = tx.SetUserStatusByUsername(ctx, username, model.UserStatusWaitingApprove)
 	if err != nil {
 		return model.User{}, 0, fmt.Errorf("set waiting_approve status: %w", err)
 	}

@@ -1,4 +1,4 @@
-import { Box, Container } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,9 +20,7 @@ export default function App() {
     <Box w="100vw" minH="100vh">
       <QueryClientProvider client={queryClient}>
         <Toaster />
-        <Container maxW="container.md" py="8">
-          <MainScreen />
-        </Container>
+        <MainScreen />
       </QueryClientProvider>
     </Box>
   )

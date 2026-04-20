@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/go-telegram/bot/models"
@@ -15,6 +14,10 @@ import (
 )
 
 const adminCommandArgs = 2
+
+func normalizeAdminUsername(username string) string {
+	return strings.TrimPrefix(strings.TrimSpace(username), "@")
+}
 
 func (c *Controller) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	var update models.Update
@@ -99,6 +102,8 @@ func (c *Controller) handleAdminCommand(r *http.Request, adminUser model.Telegra
 	}
 
 	switch parts[0] {
+	case "/help":
+		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "*Admin commands*\n\n`/users_approved`\n`/users_waiting`\n`/approve @username`\n`/revoke @username`\n`/help`")
 	case "/users_approved":
 		users, err := c.adminService.ListApprovedUsers(r.Context())
 		if err != nil {
@@ -115,36 +120,36 @@ func (c *Controller) handleAdminCommand(r *http.Request, adminUser model.Telegra
 		return true, c.notificationService.SendAdminList(r.Context(), adminUser.ChatID, "Waiting approval", users)
 	case "/approve":
 		if len(parts) < adminCommandArgs {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: /approve <telegram_id>")
+			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: `/approve @username`")
 		}
 
-		telegramID, err := strconv.ParseInt(parts[1], 10, 64)
-		if err != nil {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid telegram_id")
+		username := normalizeAdminUsername(parts[1])
+		if username == "" {
+			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid username")
 		}
 
-		user, err := c.adminService.ApproveUser(r.Context(), telegramID)
+		user, err := c.adminService.ApproveUser(r.Context(), username)
 		if err != nil {
 			return true, fmt.Errorf("approve user: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Approved @"+user.Username)
+		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "*User approved*\n\n@"+user.Username)
 	case "/revoke":
 		if len(parts) < adminCommandArgs {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: /revoke <telegram_id>")
+			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: `/revoke @username`")
 		}
 
-		telegramID, err := strconv.ParseInt(parts[1], 10, 64)
-		if err != nil {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid telegram_id")
+		username := normalizeAdminUsername(parts[1])
+		if username == "" {
+			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid username")
 		}
 
-		user, deletedTunnels, err := c.adminService.RevokeUser(r.Context(), telegramID)
+		user, deletedTunnels, err := c.adminService.RevokeUser(r.Context(), username)
 		if err != nil {
 			return true, fmt.Errorf("revoke user: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, fmt.Sprintf("Revoked @%s and reset to waiting_approve. Deleted tunnels: %d", user.Username, deletedTunnels))
+		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, fmt.Sprintf("*User revoked*\n\n@%s\nDeleted tunnels: `%d`\nNew status: `waiting_approve`", user.Username, deletedTunnels))
 	default:
 		return false, nil
 	}

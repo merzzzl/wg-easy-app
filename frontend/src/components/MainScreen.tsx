@@ -1,9 +1,10 @@
-import { Alert, Box, Button, Stack } from '@chakra-ui/react'
+import { Alert, Box, Button, Container, Stack } from '@chakra-ui/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type Tunnel, useApi } from '../lib/api'
+import { ApprovalPending } from './ApprovalPending'
 import { TunnelDeleteDialog } from './TunnelDeleteDialog'
 import { TunnelList } from './TunnelList'
 import { TunnelQrDialog } from './TunnelQrDialog'
@@ -23,9 +24,12 @@ export function MainScreen() {
     queryFn: api.getMe,
   })
 
+  const isApproved = meQuery.data?.user.status === 'approved'
+
   const tunnelsQuery = useQuery({
     queryKey: ['tunnels'],
     queryFn: api.listTunnels,
+    enabled: isApproved,
   })
 
   const createTunnel = useMutation({
@@ -87,8 +91,8 @@ export function MainScreen() {
     return meQuery.data.max_tunnels - meQuery.data.used_tunnels
   }, [meQuery.data])
 
-  const loading = meQuery.isLoading || tunnelsQuery.isLoading
-  const bootError = meQuery.error || tunnelsQuery.error
+  const loading = meQuery.isLoading || (isApproved && tunnelsQuery.isLoading)
+  const bootError = meQuery.error || (isApproved ? tunnelsQuery.error : null)
 
   const handleCreateTunnel = () => {
     createTunnel.mutate()
@@ -112,35 +116,41 @@ export function MainScreen() {
     deleteTunnel.mutate(deletingTunnelId)
   }
 
+  if (meQuery.data && !isApproved) {
+    return <ApprovalPending me={meQuery.data} />
+  }
+
   return (
     <Box minH="100vh" py="6">
-      <Stack gap="6">
-        <UserSummary me={meQuery.data} remaining={remaining} />
+      <Container maxW="container.md">
+        <Stack gap="6">
+        <UserSummary me={meQuery.data} />
 
-        {bootError ? (
-          <Alert.Root status="error" rounded="2xl">
-            <Alert.Indicator />
-            <Alert.Content>
-              {t('error.load')}: {bootError instanceof Error ? bootError.message : 'Unknown error'}
-            </Alert.Content>
-          </Alert.Root>
-        ) : null}
+          {bootError ? (
+            <Alert.Root status="error" rounded="2xl">
+              <Alert.Indicator />
+              <Alert.Content>
+                {t('error.load')}: {bootError instanceof Error ? bootError.message : 'Unknown error'}
+              </Alert.Content>
+            </Alert.Root>
+          ) : null}
 
-        <Button colorPalette="blue" size="lg" onClick={handleCreateTunnel} disabled={createTunnel.isPending || loading || remaining <= 0}>
-          {createTunnel.isPending ? t('actions.creating') : t('actions.create')}
-        </Button>
+          <Button colorPalette="blue" size="lg" onClick={handleCreateTunnel} disabled={createTunnel.isPending || loading || remaining <= 0}>
+            {createTunnel.isPending ? t('actions.creating') : t('actions.create')}
+          </Button>
 
-        <TunnelList
-          tunnels={tunnelsQuery.data ?? []}
-          loading={loading}
-          deletingTunnelId={deletingTunnelId}
-          deletePending={deleteTunnel.isPending}
-          sendPending={sendConfig.isPending}
-          onShowQR={handleShowQR}
-          onSendConfig={(tunnel) => sendConfig.mutate(tunnel.id)}
-          onDelete={handleDeleteTunnel}
-        />
-      </Stack>
+          <TunnelList
+            tunnels={tunnelsQuery.data ?? []}
+            loading={loading}
+            deletingTunnelId={deletingTunnelId}
+            deletePending={deleteTunnel.isPending}
+            sendPending={sendConfig.isPending}
+            onShowQR={handleShowQR}
+            onSendConfig={(tunnel) => sendConfig.mutate(tunnel.id)}
+            onDelete={handleDeleteTunnel}
+          />
+        </Stack>
+      </Container>
 
       <TunnelQrDialog
         open={selectedTunnel !== null}
