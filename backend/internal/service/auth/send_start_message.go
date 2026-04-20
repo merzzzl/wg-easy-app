@@ -2,11 +2,11 @@ package auth
 
 import (
 	"context"
-	"log"
+	"log/slog"
 )
 
 func (s *Service) SendStartMessage(ctx context.Context, chatID int64) error {
-	log.Printf("info auth.send_start_message called chat_id=%d has_mini_app_url=%t", chatID, s.config.MiniAppURL != "")
+	slog.Info("auth.send_start_message called", "chat_id", chatID, "has_mini_app_url", s.config.MiniAppURL != "")
 
 	text := "Добро пожаловать. Здесь вы можете управлять своими WireGuard-конфигами."
 	if s.config.MiniAppURL == "" {

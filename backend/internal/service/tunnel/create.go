@@ -3,13 +3,14 @@ package tunnel
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"strconv"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) Create(ctx context.Context, user *model.User) (model.Tunnel, error) {
-	log.Printf("info tunnel.create called user_id=%d username=%s", user.ID, user.Username)
+	slog.Info("tunnel.create called", "user_id", user.ID, "username", user.Username)
 
 	tx, err := s.db.OpenTx(ctx)
 	if err != nil {
@@ -47,25 +48,29 @@ func (s *Service) Create(ctx context.Context, user *model.User) (model.Tunnel, e
 
 	response, err := s.wg.CreateClient(ctx, model.WGEasyCreateClientParams{Name: wgClientName})
 	if err != nil {
+		slog.Error("tunnel.create wg-easy create failed", "user_id", user.ID, "wg_client_name", wgClientName, "error", err)
+
 		return model.Tunnel{}, fmt.Errorf("create wg-easy client: %w", err)
 	}
 
-	tunnel, err = tx.SetTunnelWGClientID(ctx, tunnel.ID, response.ClientID)
+	wgClientID := strconv.FormatInt(response.ClientID, 10)
+
+	tunnel, err = tx.SetTunnelWGClientID(ctx, tunnel.ID, wgClientID)
 	if err != nil {
-		_ = s.wg.DeleteClient(ctx, response.ClientID)
+		_ = s.wg.DeleteClient(ctx, wgClientID)
 
 		return model.Tunnel{}, fmt.Errorf("set wg client id: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		_ = s.wg.DeleteClient(ctx, response.ClientID)
+		_ = s.wg.DeleteClient(ctx, wgClientID)
 
 		return model.Tunnel{}, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	committed = true
 
-	log.Printf("info tunnel.create succeeded user_id=%d tunnel_id=%d wg_client_name=%s wg_client_id=%s", user.ID, tunnel.ID, tunnel.WGClientName, tunnel.WGClientID)
+	slog.Info("tunnel.create succeeded", "user_id", user.ID, "tunnel_id", tunnel.ID, "wg_client_name", tunnel.WGClientName, "wg_client_id", tunnel.WGClientID)
 
 	return tunnel, nil
 }

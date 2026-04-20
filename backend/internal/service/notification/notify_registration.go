@@ -2,13 +2,13 @@ package notification
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) NotifyRegistration(ctx context.Context, user *model.User) error {
-	log.Printf("info notification.notify_registration called telegram_id=%d username=%s admin=%s", user.TelegramID, user.Username, s.adminUsername)
+	slog.Info("notification.notify_registration called", "telegram_id", user.TelegramID, "username", user.Username, "admin_username", s.adminUsername)
 
 	return s.tg.SendMessage(ctx, s.adminUsername, registrationText(user.Username, user.TelegramID, string(user.Status)))
 }

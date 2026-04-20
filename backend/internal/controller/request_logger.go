@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -28,6 +28,6 @@ func (c *Controller) RequestLogger(next http.Handler) http.Handler {
 
 		next.ServeHTTP(writer, r)
 
-		log.Printf("http_request method=%s path=%s status=%d duration=%s remote=%s", r.Method, r.URL.Path, writer.statusCode, time.Since(startedAt), r.RemoteAddr)
+		slog.Info("http_request", "method", r.Method, "path", r.URL.Path, "status", writer.statusCode, "duration", time.Since(startedAt), "remote", r.RemoteAddr)
 	})
 }

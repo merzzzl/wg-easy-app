@@ -3,13 +3,13 @@ package tunnel
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) SendConfig(ctx context.Context, user *model.User, tunnelID int64) error {
-	log.Printf("info tunnel.send_config called user_id=%d tunnel_id=%d chat_id=%d", user.ID, tunnelID, user.ChatID)
+	slog.Info("tunnel.send_config called", "user_id", user.ID, "tunnel_id", tunnelID, "chat_id", user.ChatID)
 
 	tunnels, err := s.db.ListTunnelsByUserID(ctx, user.ID)
 	if err != nil {
@@ -31,7 +31,7 @@ func (s *Service) SendConfig(ctx context.Context, user *model.User, tunnelID int
 		return fmt.Errorf("send config document: %w", err)
 	}
 
-	log.Printf("info tunnel.send_config succeeded user_id=%d tunnel_id=%d wg_client_name=%s", user.ID, tunnel.ID, tunnel.WGClientName)
+	slog.Info("tunnel.send_config succeeded", "user_id", user.ID, "tunnel_id", tunnel.ID, "wg_client_name", tunnel.WGClientName)
 
 	return nil
 }

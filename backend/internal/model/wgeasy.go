@@ -1,7 +1,7 @@
 package model
 
 type WGEasyClient struct {
-	ID   string `json:"id"`
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -10,6 +10,6 @@ type WGEasyCreateClientParams struct {
 }
 
 type WGEasyCreateClientResponse struct {
-	Success  bool   `json:"success"`
-	ClientID string `json:"clientId"`
+	Success  bool  `json:"success"`
+	ClientID int64 `json:"clientId"`
 }

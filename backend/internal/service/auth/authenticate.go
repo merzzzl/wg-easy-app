@@ -2,29 +2,29 @@ package auth
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"wg-easy-app/backend/internal/model"
 )
 
 func (s *Service) Authenticate(ctx context.Context, initData string) (model.User, bool, error) {
-	log.Printf("info auth.authenticate called init_data_present=%t", initData != "")
+	slog.Info("auth.authenticate called", "init_data_present", initData != "")
 
 	telegramUser, err := s.ValidateInitData(initData)
 	if err != nil {
-		log.Printf("info auth.authenticate validation_failed err=%v", err)
+		slog.Error("auth.authenticate validation failed", "error", err)
 
 		return model.User{}, false, err
 	}
 
 	user, created, err := s.UpsertTelegramUser(ctx, telegramUser)
 	if err != nil {
-		log.Printf("info auth.authenticate upsert_failed telegram_id=%d err=%v", telegramUser.TelegramID, err)
+		slog.Error("auth.authenticate upsert failed", "telegram_id", telegramUser.TelegramID, "error", err)
 
 		return model.User{}, false, err
 	}
 
-	log.Printf("info auth.authenticate succeeded telegram_id=%d created=%t", user.TelegramID, created)
+	slog.Info("auth.authenticate succeeded", "telegram_id", user.TelegramID, "created", created)
 
 	return user, created, nil
 }

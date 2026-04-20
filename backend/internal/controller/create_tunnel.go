@@ -1,6 +1,9 @@
 package controller
 
-import "net/http"
+import (
+	"log/slog"
+	"net/http"
+)
 
 func (c *Controller) CreateTunnel(w http.ResponseWriter, r *http.Request) {
 	user, ok := currentUser(r.Context())
@@ -12,6 +15,8 @@ func (c *Controller) CreateTunnel(w http.ResponseWriter, r *http.Request) {
 
 	tunnelModel, err := c.tunnelService.Create(r.Context(), user)
 	if err != nil {
+		slog.Error("controller.create_tunnel failed", "user_id", user.ID, "error", err)
+
 		status, message := mapTunnelError(err)
 		writeError(w, status, message)
 
