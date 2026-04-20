@@ -1,0 +1,11 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$MINI_APP_DOMAIN} {
+    reverse_proxy wg-easy-app:8080
+}
+
+{$WG_EASY_DOMAIN} {
+    reverse_proxy wg-easy:51821
+}

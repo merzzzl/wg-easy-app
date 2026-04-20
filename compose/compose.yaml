@@ -1,0 +1,65 @@
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - wg-easy-app
+      - wg-easy
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+      MINI_APP_DOMAIN: ${MINI_APP_DOMAIN}
+      WG_EASY_DOMAIN: ${WG_EASY_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  wg-easy-app:
+    image: ghcr.io/merzzzl/wg-easy-app:latest
+    restart: unless-stopped
+    depends_on:
+      wg-easy:
+        condition: service_started
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8080"
+      APP_MAIN_BOT_TOKEN: ${APP_MAIN_BOT_TOKEN}
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME}
+      APP_MAX_TUNNELS: ${APP_MAX_TUNNELS}
+      APP_DB_URL: /data/sqlite.db
+      APP_WG_EASY_BASE_URL: http://wg-easy:51821
+      APP_WG_EASY_USERNAME: ${WG_EASY_USERNAME}
+      APP_WG_EASY_PASSWORD: ${WG_EASY_PASSWORD}
+      APP_WG_EASY_INSECURE_TLS: "false"
+      APP_MINI_APP_URL: https://${MINI_APP_DOMAIN}
+    volumes:
+      - wg-easy-app_data:/data
+
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15
+    restart: unless-stopped
+    environment:
+      INIT_ENABLED: "true"
+      INIT_USERNAME: ${WG_EASY_USERNAME}
+      INIT_PASSWORD: ${WG_EASY_PASSWORD}
+      INIT_HOST: ${WG_EASY_DOMAIN}
+      INIT_PORT: 51820
+    volumes:
+      - wg-easy_etc:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.default.forwarding=1
+
+volumes:
+  wg-easy-app_data:
+  caddy_data:
+  caddy_config:
+  wg-easy_etc:

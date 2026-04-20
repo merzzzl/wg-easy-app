@@ -1,0 +1,105 @@
+name: Docker
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'App version'
+        required: true
+        default: 'latest'
+  release:
+    types: [released]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Set manual version
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "RELEASE_VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ env.RELEASE_VERSION }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          CURRENT_TAG="${RELEASE_VERSION}"
+          PREVIOUS_TAG="$(git tag --sort=-version:refname | grep -Fxv "${CURRENT_TAG}" | head -n 1 || true)"
+
+          if [ -n "${PREVIOUS_TAG}" ]; then
+            COMMIT_RANGE="${PREVIOUS_TAG}..${CURRENT_TAG}"
+          else
+            COMMIT_RANGE="${CURRENT_TAG}"
+          fi
+
+          {
+            echo "## Summary"
+            if git log "${COMMIT_RANGE}" --pretty=format:'- %s' | grep . >/dev/null; then
+              git log "${COMMIT_RANGE}" --pretty=format:'- %s'
+            else
+              echo "- No changes detected"
+            fi
+            echo
+            echo "## Commits"
+            if git log "${COMMIT_RANGE}" --pretty=format:'- `%h` %s' | grep . >/dev/null; then
+              git log "${COMMIT_RANGE}" --pretty=format:'- `%h` %s'
+            else
+              echo "- No commits found"
+            fi
+            echo
+            echo "## Container"
+            echo "- Image: \`ghcr.io/${{ github.repository }}:${CURRENT_TAG}\`"
+            echo "- Also tagged as: \`ghcr.io/${{ github.repository }}:latest\`"
+          } > release-notes.md
+
+      - name: Update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: wg-easy-app ${{ env.RELEASE_VERSION }}
+          body_path: release-notes.md
+          append_body: false
