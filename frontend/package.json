@@ -15,7 +15,6 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.60.2",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react-swc": "^4.0.0",
