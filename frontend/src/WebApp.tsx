@@ -13,7 +13,7 @@ export default function WebApp() {
   }, [i18n])
 
   return (
-    <Box w="100vw" h="100vh">
+    <Box w="full" minH="100vh" overflowX="hidden">
       <AbsoluteCenter>
         <EmptyStateRoot maxW="420px">
           <EmptyStateContent>

@@ -1,10 +1,9 @@
 package webhook
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/go-telegram/bot/models"
@@ -19,83 +18,63 @@ func normalizeAdminUsername(username string) string {
 	return strings.TrimPrefix(strings.TrimSpace(username), "@")
 }
 
-func (c *Controller) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
-	var update models.Update
-	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid telegram update")
-
-		return
+func (c *Controller) HandleUpdate(ctx context.Context, update *models.Update) error {
+	if update == nil {
+		return nil
 	}
 
 	message := update.Message
 	if message == nil || strings.TrimSpace(message.Text) == "" {
-		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-
-		return
+		return nil
 	}
 
 	telegramUser, err := telegramUserFromMessage(message)
 	if err != nil {
-		status := http.StatusBadRequest
 		if errors.Is(err, auth.ErrUsernameRequired) {
-			status = http.StatusBadRequest
+			return err
 		}
 
-		writeError(w, status, err.Error())
-
-		return
+		return err
 	}
 
-	if err := c.notificationService.BindAdminChat(r.Context(), telegramUser); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to bind admin chat")
-
-		return
+	if err := c.notificationService.BindAdminChat(ctx, telegramUser); err != nil {
+		return fmt.Errorf("bind admin chat: %w", err)
 	}
 
 	text := strings.TrimSpace(message.Text)
 	if c.notificationService.IsAdminUsername(telegramUser.Username) && strings.HasPrefix(text, "/") {
-		if handled, err := c.handleAdminCommand(r, telegramUser, text); handled {
+		if handled, err := c.handleAdminCommand(ctx, telegramUser, text); handled {
 			if err != nil {
-				writeError(w, http.StatusInternalServerError, err.Error())
-
-				return
+				return err
 			}
 
-			writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-
-			return
+			return nil
 		}
 	}
 
 	if !strings.HasPrefix(text, "/start") {
-		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-
-		return
+		return nil
 	}
 
-	user, created, err := c.authService.RegisterTelegramUser(r.Context(), telegramUser)
+	user, created, err := c.authService.RegisterTelegramUser(ctx, telegramUser)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to register telegram user")
-
-		return
+		return fmt.Errorf("register telegram user: %w", err)
 	}
 
 	if created {
-		if err := c.notificationService.NotifyRegistration(r.Context(), &user); err == nil {
-			_, _ = c.authService.SetUserStatusByTelegramID(r.Context(), user.TelegramID, model.UserStatusWaitingApprove)
+		if err := c.notificationService.NotifyRegistration(ctx, &user); err == nil {
+			_, _ = c.authService.SetUserStatusByTelegramID(ctx, user.TelegramID, model.UserStatusWaitingApprove)
 		}
 	}
 
-	if err := c.authService.SendStartMessage(r.Context(), telegramUser.ChatID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to send start message")
-
-		return
+	if err := c.authService.SendStartMessage(ctx, telegramUser.ChatID); err != nil {
+		return fmt.Errorf("send start message: %w", err)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	return nil
 }
 
-func (c *Controller) handleAdminCommand(r *http.Request, adminUser model.TelegramUser, text string) (bool, error) {
+func (c *Controller) handleAdminCommand(ctx context.Context, adminUser model.TelegramUser, text string) (bool, error) {
 	parts := strings.Fields(text)
 	if len(parts) == 0 {
 		return false, nil
@@ -103,67 +82,54 @@ func (c *Controller) handleAdminCommand(r *http.Request, adminUser model.Telegra
 
 	switch parts[0] {
 	case "/help":
-		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "*Admin commands*\n\n`/users_approved`\n`/users_waiting`\n`/approve @username`\n`/revoke @username`\n`/help`")
+		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "*Admin commands*\n\n`/users_approved`\n`/users_waiting`\n`/approve @username`\n`/revoke @username`\n`/help`")
 	case "/users_approved":
-		users, err := c.adminService.ListApprovedUsers(r.Context())
+		users, err := c.adminService.ListApprovedUsers(ctx)
 		if err != nil {
 			return true, fmt.Errorf("list approved users: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminList(r.Context(), adminUser.ChatID, "Approved users", users)
+		return true, c.notificationService.SendAdminList(ctx, adminUser.ChatID, "Approved users", users)
 	case "/users_waiting":
-		users, err := c.adminService.ListWaitingUsers(r.Context())
+		users, err := c.adminService.ListWaitingUsers(ctx)
 		if err != nil {
 			return true, fmt.Errorf("list waiting users: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminList(r.Context(), adminUser.ChatID, "Waiting approval", users)
+		return true, c.notificationService.SendAdminList(ctx, adminUser.ChatID, "Waiting approval", users)
 	case "/approve":
 		if len(parts) < adminCommandArgs {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: `/approve @username`")
+			return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "Usage: `/approve @username`")
 		}
 
 		username := normalizeAdminUsername(parts[1])
 		if username == "" {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid username")
+			return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "Invalid username")
 		}
 
-		user, err := c.adminService.ApproveUser(r.Context(), username)
+		user, err := c.adminService.ApproveUser(ctx, username)
 		if err != nil {
 			return true, fmt.Errorf("approve user: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "*User approved*\n\n@"+user.Username)
+		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "*User approved*\n\n@"+user.Username)
 	case "/revoke":
 		if len(parts) < adminCommandArgs {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Usage: `/revoke @username`")
+			return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "Usage: `/revoke @username`")
 		}
 
 		username := normalizeAdminUsername(parts[1])
 		if username == "" {
-			return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, "Invalid username")
+			return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "Invalid username")
 		}
 
-		user, deletedTunnels, err := c.adminService.RevokeUser(r.Context(), username)
+		user, deletedTunnels, err := c.adminService.RevokeUser(ctx, username)
 		if err != nil {
 			return true, fmt.Errorf("revoke user: %w", err)
 		}
 
-		return true, c.notificationService.SendAdminText(r.Context(), adminUser.ChatID, fmt.Sprintf("*User revoked*\n\n@%s\nDeleted tunnels: `%d`\nNew status: `waiting_approve`", user.Username, deletedTunnels))
+		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, fmt.Sprintf("*User revoked*\n\n@%s\nDeleted tunnels: `%d`\nNew status: `waiting_approve`", user.Username, deletedTunnels))
 	default:
 		return false, nil
 	}
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-}
-
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
 }

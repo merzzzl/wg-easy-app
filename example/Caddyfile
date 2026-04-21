@@ -1,0 +1,11 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$MINI_APP_DOMAIN} {
+    reverse_proxy upstream-wg:8080
+}
+
+{$WG_EASY_DOMAIN} {
+    reverse_proxy upstream-wg:80
+}

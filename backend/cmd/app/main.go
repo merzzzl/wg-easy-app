@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 	_ "modernc.org/sqlite"
 
 	"wg-easy-app/backend/internal/config"
@@ -67,24 +68,34 @@ func main() {
 		log.Fatal(err)
 	}
 
-	botClient, err := bot.New(cfg.MainBotToken)
+	var webhookController *webhookcontroller.Controller
+
+	botClient, err := bot.New(
+		cfg.MainBotToken,
+		bot.WithAllowedUpdates(bot.AllowedUpdates{"message"}),
+		bot.WithDefaultHandler(func(ctx context.Context, _ *bot.Bot, update *models.Update) {
+			if webhookController == nil {
+				log.Print("telegram update skipped: controller not initialized")
+
+				return
+			}
+
+			if err := webhookController.HandleUpdate(ctx, update); err != nil {
+				log.Printf("process telegram update: %v", err)
+			}
+		}),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if webhookURL := cfg.TelegramWebhookURL(); webhookURL != "" {
-		ok, err := botClient.SetWebhook(ctx, &bot.SetWebhookParams{
-			URL:            webhookURL,
-			AllowedUpdates: []string{"message"},
-		})
-		if err != nil {
-			log.Fatalf("set telegram webhook: %v", err)
-		}
-
-		log.Printf("telegram webhook configured: ok=%t url=%s", ok, webhookURL)
-	} else {
-		log.Print("telegram webhook skipped: APP_MINI_APP_URL is empty")
+	if _, err := botClient.DeleteWebhook(ctx, &bot.DeleteWebhookParams{
+		DropPendingUpdates: false,
+	}); err != nil {
+		log.Fatalf("delete telegram webhook: %v", err)
 	}
+
+	log.Print("telegram long polling enabled")
 
 	wgRepo, err := wgeasyrepo.New(cfg.WGEasyBaseURL, cfg.WGEasyUsername, cfg.WGEasyPassword, cfg.WGEasyInsecureTLS)
 	if err != nil {
@@ -100,11 +111,10 @@ func main() {
 	notificationService := notificationservice.New(cfg, dbRepo, tgRepo)
 
 	httpController := httpcontroller.New(tunnelService, notificationService)
-	webhookController := webhookcontroller.New(authService, adminService, notificationService)
+	webhookController = webhookcontroller.New(authService, adminService, notificationService)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", httpcontroller.Static("/app/static", httpController.Routes(middleware.Auth(authService, notificationService))))
-	mux.HandleFunc("POST /telegram/webhook", webhookController.TelegramWebhook)
 
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
 	server := &http.Server{
@@ -121,6 +131,8 @@ func main() {
 
 		_ = server.Shutdown(shutdownCtx)
 	}()
+
+	go botClient.Start(ctx)
 
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)

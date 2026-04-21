@@ -17,7 +17,7 @@ export default function App() {
   }, [i18n])
 
   return (
-    <Box w="100vw" minH="100vh">
+    <Box w="full" minH="100vh" overflowX="hidden">
       <QueryClientProvider client={queryClient}>
         <Toaster />
         <MainScreen />

@@ -26,10 +26,14 @@ const config = defineConfig({
     'html, body': {
       margin: 0,
       minHeight: '100%',
+      width: '100%',
+      overflowX: 'hidden',
       bg: 'bg.canvas',
     },
     '#root': {
       minHeight: '100vh',
+      width: '100%',
+      overflowX: 'hidden',
     },
   },
 })

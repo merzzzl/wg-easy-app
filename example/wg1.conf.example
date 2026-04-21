@@ -1,0 +1,11 @@
+[Interface]
+PrivateKey = <key>
+Address = <subnet>
+Table = off
+
+[Peer]
+PublicKey = <key>
+PresharedKey = <key>
+AllowedIPs = ::/0, 0.0.0.0/0
+Endpoint = <host>
+PersistentKeepalive = 15

@@ -4,6 +4,7 @@
 .idea/
 .vscode/
 deploy/
+.gocache
 
 backend/app
 backend/coverage.out

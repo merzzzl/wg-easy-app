@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"path"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -69,19 +68,4 @@ func Read() (*Config, error) {
 	cfg.Host = strings.TrimSpace(cfg.Host)
 
 	return &cfg, nil
-}
-
-func (c *Config) TelegramWebhookURL() string {
-	if c.MiniAppURL == "" {
-		return ""
-	}
-
-	parsed, err := url.Parse(c.MiniAppURL)
-	if err != nil {
-		return ""
-	}
-
-	parsed.Path = path.Join(parsed.Path, "/telegram/webhook")
-
-	return parsed.String()
 }
