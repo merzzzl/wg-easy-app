@@ -12,16 +12,17 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+	"wg-easy-app/backend/internal/config"
+	"wg-easy-app/backend/internal/middleware"
+	"wg-easy-app/backend/internal/migrations"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	_ "modernc.org/sqlite"
 
-	"wg-easy-app/backend/internal/config"
 	httpcontroller "wg-easy-app/backend/internal/controller/http"
 	webhookcontroller "wg-easy-app/backend/internal/controller/webhook"
-	"wg-easy-app/backend/internal/middleware"
-	"wg-easy-app/backend/internal/migrations"
+
 	postgresrepo "wg-easy-app/backend/internal/repository/postgres"
 	telegramrepo "wg-easy-app/backend/internal/repository/telegram"
 	wgeasyrepo "wg-easy-app/backend/internal/repository/wgeasy"
@@ -88,14 +89,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if _, err := botClient.DeleteWebhook(ctx, &bot.DeleteWebhookParams{
-		DropPendingUpdates: false,
-	}); err != nil {
-		log.Fatalf("delete telegram webhook: %v", err)
-	}
-
-	log.Print("telegram long polling enabled")
 
 	wgRepo, err := wgeasyrepo.New(cfg.WGEasyBaseURL, cfg.WGEasyUsername, cfg.WGEasyPassword, cfg.WGEasyInsecureTLS)
 	if err != nil {
