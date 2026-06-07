@@ -90,10 +90,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if _, err := botClient.DeleteWebhook(ctx, &bot.DeleteWebhookParams{
-		DropPendingUpdates: false,
-	}); err != nil {
-		log.Fatalf("delete telegram webhook: %v", err)
+	if _, err := botClient.DeleteWebhook(ctx, &bot.DeleteWebhookParams{}); err != nil {
+		log.Printf("delete telegram webhook: %v", err)
 	}
 
 	wgRepo, err := wgeasyrepo.New(cfg.WGEasyBaseURL, cfg.WGEasyUsername, cfg.WGEasyPassword, cfg.WGEasyInsecureTLS)
