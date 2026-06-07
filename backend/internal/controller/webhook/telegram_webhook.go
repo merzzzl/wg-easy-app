@@ -82,7 +82,7 @@ func (c *Controller) handleAdminCommand(ctx context.Context, adminUser model.Tel
 
 	switch parts[0] {
 	case "/help":
-		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "*Admin commands*\n\n`/users_approved`\n`/users_waiting`\n`/approve @username`\n`/revoke @username`\n`/help`")
+		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "*Admin commands*\n\n`/users_approved`\n`/users_waiting`\n`/approve @username`\n`/revoke @username`\n`/notify text`\n`/help`")
 	case "/users_approved":
 		users, err := c.adminService.ListApprovedUsers(ctx)
 		if err != nil {
@@ -129,6 +129,18 @@ func (c *Controller) handleAdminCommand(ctx context.Context, adminUser model.Tel
 		}
 
 		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, fmt.Sprintf("*User revoked*\n\n@%s\nDeleted tunnels: `%d`\nNew status: `waiting_approve`", user.Username, deletedTunnels))
+	case "/notify":
+		message := strings.TrimSpace(strings.TrimPrefix(text, parts[0]))
+		if message == "" {
+			return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, "Usage: `/notify <text>`")
+		}
+
+		sent, err := c.notificationService.NotifyApprovedUsers(ctx, message)
+		if err != nil {
+			return true, fmt.Errorf("notify approved users: %w", err)
+		}
+
+		return true, c.notificationService.SendAdminText(ctx, adminUser.ChatID, fmt.Sprintf("*Notification sent*\n\nApproved users: `%d`", sent))
 	default:
 		return false, nil
 	}
